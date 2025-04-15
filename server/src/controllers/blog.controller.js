@@ -26,10 +26,6 @@ const validateAndFormatDate = (dateStr) => {
 
 const createBlog = asyncHandler(async (req, res) => {
   try {
-    console.log("Creating blog - Request received");
-    console.log("Request body:", req.body);
-    console.log("File details:", req.file);
-
     const { title, date, content, author } = req.body;
 
     // Validate required fields

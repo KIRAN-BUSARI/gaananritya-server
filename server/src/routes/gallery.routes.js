@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { upload } from "../middlewares/multer.middleware.js";
-import { deleteImg, getImgs, uploadImg } from "../controllers/gallery.controller.js";
+import { deleteImg, getImgs, getImgsByCategory, uploadImg } from "../controllers/gallery.controller.js";
 import { allowedRoles, verifyJWT } from "../middlewares/auth.middleware.js";
 
 const router = Router();
@@ -8,6 +8,8 @@ const router = Router();
 router.route("/upload").post(verifyJWT, allowedRoles("ADMIN"), upload.array('images', 10), uploadImg);
 
 router.route("/all").get(getImgs);
+
+router.route("/images/:category").get(getImgsByCategory);
 
 router.route("/delete/:id").delete(verifyJWT, allowedRoles("ADMIN"), deleteImg);
 
