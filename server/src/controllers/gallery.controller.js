@@ -35,7 +35,7 @@ const uploadImg = asyncHandler(async (req, res) => {
   }
 
   if (localImgs.length === 1) {
-    const result = await uploadOnCloudinary(localImgs[0].path);
+    const result = await uploadOnCloudinary(localImgs[0]);
     console.log(result);
     const gallery = await Gallery.create({
       image: result.secure_url,
@@ -45,7 +45,7 @@ const uploadImg = asyncHandler(async (req, res) => {
   }
   if (localImgs.length > 1) {
 
-    const uploadPromises = localImgs.map(file => uploadOnCloudinary(file.path));
+    const uploadPromises = localImgs.map(file => uploadOnCloudinary(file));
     const cloudinaryResults = await Promise.all(uploadPromises);
     console.log(cloudinaryResults);
 
