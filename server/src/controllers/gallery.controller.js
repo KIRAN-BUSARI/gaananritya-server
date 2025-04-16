@@ -14,8 +14,8 @@ const uploadImg = asyncHandler(async (req, res) => {
   if (category.length < 3) {
     throw new ApiError(400, "Category name should be at least 3 characters long")
   }
-  if (category.length > 10) {
-    throw new ApiError(400, "Category name should be at most 10 characters long")
+  if (category.length > 20) {
+    throw new ApiError(400, "Category name should be at most 20 characters long")
   }
   const localImgs = req.files;
   if (!req.files) {
