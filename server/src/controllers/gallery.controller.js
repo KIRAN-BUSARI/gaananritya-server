@@ -3,6 +3,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js"
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js"
+import { cleanupTempFiles } from "../middlewares/multer.middleware.js";
 
 const uploadImg = asyncHandler(async (req, res) => {
   const { category } = req.body;
@@ -18,11 +19,13 @@ const uploadImg = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Category name should be at most 20 characters long")
   }
   const localImgs = req.files;
+  console.log(localImgs);
+
   if (!req.files) {
     throw new ApiError(400, "Please upload images")
   }
-  if (req.files.length > 10) {
-    throw new ApiError(400, "You can only upload up to 10 images")
+  if (req.files.length > 20) {
+    throw new ApiError(400, "You can only upload up to 20 images")
   }
   if (req.files.length < 1) {
     throw new ApiError(400, "Please upload at least one image")
@@ -33,6 +36,7 @@ const uploadImg = asyncHandler(async (req, res) => {
   }
 
   const uploadPromises = localImgs.map(file => uploadOnCloudinary(file.path));
+  cleanupTempFiles(localImgs);
   const cloudinaryResults = await Promise.all(uploadPromises);
 
   const galleryDocs = await Gallery.insertMany(
