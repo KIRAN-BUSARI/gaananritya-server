@@ -20,6 +20,17 @@ const generateAccessAndRefereshTokens = async (userId) => {
   }
 }
 
+const domain = process.env.NODE_ENV === "production"
+  ? new URL(process.env.CORS_ORIGIN).hostname
+  : 'localhost';
+
+const options = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+  maxAge: 24 * 60 * 60 * 1000,
+  domain
+}
 
 const registerUser = asyncHandler(async (req, res) => {
   const { username, email, password } = req.body;
@@ -90,13 +101,6 @@ const loginUser = asyncHandler(async (req, res) => {
     throw new ApiError(500, "Error while getting user details");
   }
 
-  const options = {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: 'lax',
-    path: '/'
-  }
-
   return res
     .status(200)
     .cookie("accessToken", accessToken, options)
@@ -125,13 +129,6 @@ const logoutUser = asyncHandler(async (req, res) => {
       new: true
     }
   )
-
-  const options = {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: 'lax',
-    path: '/'
-  }
 
   return res
     .status(200)

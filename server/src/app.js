@@ -16,10 +16,17 @@ app.use(morgan('dev'));
 app.use(cookieParser())
 
 app.use(cors({
-  origin: process.env.CORS_ORIGIN,
+  origin: function (origin, callback) {
+    const allowedOrigins = [process.env.CORS_ORIGIN];
+    // For development, allow requests with no origin
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
-}
-));
+}));
 
 app.get('/', (_, res) => {
   res.json({ message: 'Hello World' });

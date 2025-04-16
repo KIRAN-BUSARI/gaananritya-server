@@ -3,7 +3,6 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js"
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js"
-import { cleanupTempFiles } from "../middlewares/multer.middleware.js";
 
 const uploadImg = asyncHandler(async (req, res) => {
   const { category } = req.body;
@@ -35,20 +34,31 @@ const uploadImg = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Please upload at least one image")
   }
 
-  const uploadPromises = localImgs.map(file => uploadOnCloudinary(file.path));
-  cleanupTempFiles(localImgs);
-  const cloudinaryResults = await Promise.all(uploadPromises);
-
-  const galleryDocs = await Gallery.insertMany(
-    cloudinaryResults.map(result => ({
+  if (localImgs.length === 1) {
+    const result = await uploadOnCloudinary(localImgs[0].path);
+    console.log(result);
+    const gallery = await Gallery.create({
       image: result.secure_url,
       category: category,
-    }))
-  );
+    });
+    return res.json(new ApiResponse(200, "Gallery Image uploaded successfully", gallery))
+  }
+  if (localImgs.length > 1) {
 
-  console.log(galleryDocs);
+    const uploadPromises = localImgs.map(file => uploadOnCloudinary(file.path));
+    const cloudinaryResults = await Promise.all(uploadPromises);
+    console.log(cloudinaryResults);
 
-  res.json(new ApiResponse(200, "Gallery Images uploaded successfully", galleryDocs))
+    const galleryDocs = await Gallery.insertMany(
+      cloudinaryResults.map(result => ({
+        image: result.secure_url,
+        category: category,
+      }))
+    );
+    console.log(galleryDocs);
+
+    res.json(new ApiResponse(200, "Gallery Images uploaded successfully", galleryDocs))
+  }
 });
 
 const getImgs = asyncHandler(async (req, res) => {

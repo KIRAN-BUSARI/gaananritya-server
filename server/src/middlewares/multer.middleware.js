@@ -3,9 +3,9 @@ import fs from "fs";
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, "/tmp")
+    cb(null, "./public/temp")
   },
-  filename: function (req, file, cb) {
+  filename: function (_req, file, cb) {
     cb(null, file.originalname)
   }
 });
@@ -14,7 +14,6 @@ export const upload = multer({
   storage,
 });
 
-// Helper function to clean up temp files after successful upload
 export const cleanupTempFiles = (files) => {
   if (!files) return;
 
