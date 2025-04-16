@@ -58,6 +58,8 @@ const getImgs = asyncHandler(async (req, res) => {
 
 const deleteImg = asyncHandler(async (req, res) => {
   const { id } = req.params;
+  console.log(id);
+
   const gallery = await Gallery.findById(id);
   if (!gallery) {
     throw new ApiError(404, "Image not found")

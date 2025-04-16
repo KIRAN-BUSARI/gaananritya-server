@@ -9,8 +9,8 @@ router.route("/upload").post(verifyJWT, allowedRoles("ADMIN"), upload.array('ima
 
 router.route("/all").get(getImgs);
 
-router.route("/images/:category").get(getImgsByCategory);
+router.route("/:category").get(getImgsByCategory);
 
-router.route("/delete/:id").delete(verifyJWT, allowedRoles("ADMIN"), deleteImg);
+router.route("/:id").delete(verifyJWT, allowedRoles("ADMIN"), deleteImg);
 
 export default router;
