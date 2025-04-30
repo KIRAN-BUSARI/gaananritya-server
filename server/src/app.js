@@ -36,9 +36,11 @@ app.get('/', (_, res) => {
 import userRoutes from './routes/user.routes.js';
 import blogRoutes from "./routes/blog.routes.js";
 import galleryRoutes from "./routes/gallery.routes.js";
+import videoRoutes from "./routes/video.routes.js";
 
 app.use("/api/v1/user", userRoutes);
 app.use("/api/v1/blog", blogRoutes);
 app.use('/api/v1/gallery', galleryRoutes);
+app.use('/api/v1/videos', videoRoutes);
 
 export { app };
