@@ -4,61 +4,52 @@ import { ApiError } from "../utils/ApiError.js"
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js"
 
-const uploadImg = asyncHandler(async (req, res) => {
+const uploadImage = asyncHandler(async (req, res) => {
   const { category } = req.body;
-  console.log(category);
 
-  if (!category) {
-    throw new ApiError(400, "Please provide a category")
-  }
-  if (category.length < 3) {
-    throw new ApiError(400, "Category name should be at least 3 characters long")
-  }
-  if (category.length > 20) {
-    throw new ApiError(400, "Category name should be at most 20 characters long")
-  }
-  const localImgs = req.files;
-  console.log(localImgs);
-
-  if (!req.files) {
-    throw new ApiError(400, "Please upload images")
-  }
-  if (req.files.length > 20) {
-    throw new ApiError(400, "You can only upload up to 20 images")
-  }
-  if (req.files.length < 1) {
-    throw new ApiError(400, "Please upload at least one image")
+  if (!category || !category.trim()) {
+    throw new ApiError(400, "Category is required");
   }
 
-  if (!localImgs || localImgs.length === 0) {
-    throw new ApiError(400, "Please upload at least one image")
+  // Check if files exist
+  if (!req.files || !req.files.length) {
+    throw new ApiError(400, "Image files are required");
   }
 
-  if (localImgs.length === 1) {
-    const result = await uploadOnCloudinary(localImgs[0]);
-    console.log(result);
-    const gallery = await Gallery.create({
-      image: result.secure_url,
-      category: category,
+  const uploadPromises = req.files.map(async (file) => {
+    // Upload the image to Cloudinary
+    const cloudinaryResponse = await uploadOnCloudinary(file.path);
+
+    // Make sure we got a response from Cloudinary
+    if (!cloudinaryResponse?.url) {
+      throw new ApiError(500, "Failed to upload image to Cloudinary");
+    }
+
+    // Create a new gallery entry in the database
+    const galleryEntry = await Gallery.create({
+      image: cloudinaryResponse.url,
+      category: category.toLowerCase().trim(),
     });
-    return res.json(new ApiResponse(200, "Gallery Image uploaded successfully", gallery))
-  }
-  if (localImgs.length > 1) {
 
-    const uploadPromises = localImgs.map(file => uploadOnCloudinary(file));
-    const cloudinaryResults = await Promise.all(uploadPromises);
-    console.log(cloudinaryResults);
+    return {
+      id: galleryEntry._id,
+      url: cloudinaryResponse.url,
+      category: galleryEntry.category
+    };
+  });
 
-    const galleryDocs = await Gallery.insertMany(
-      cloudinaryResults.map(result => ({
-        image: result.secure_url,
-        category: category,
-      }))
-    );
-    console.log(galleryDocs);
+  // Wait for all uploads to complete
+  const uploadedImages = await Promise.all(uploadPromises);
 
-    res.json(new ApiResponse(200, "Gallery Images uploaded successfully", galleryDocs))
-  }
+  return res.status(201).json(
+    new ApiResponse(
+      201,
+      uploadedImages,
+      uploadedImages.length > 1
+        ? `${uploadedImages.length} images uploaded successfully`
+        : "Image uploaded successfully"
+    )
+  );
 });
 
 const getImgs = asyncHandler(async (req, res) => {
@@ -92,4 +83,4 @@ const getImgsByCategory = asyncHandler(async (req, res) => {
 }
 );
 
-export { uploadImg, getImgs, deleteImg, getImgsByCategory };
+export { uploadImage, getImgs, deleteImg, getImgsByCategory };

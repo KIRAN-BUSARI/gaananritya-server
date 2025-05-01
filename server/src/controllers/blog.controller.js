@@ -26,42 +26,64 @@ const validateAndFormatDate = (dateStr) => {
 
 const createBlog = asyncHandler(async (req, res) => {
   try {
+    console.log("Blog creation request received:", req.body);
+    console.log("Files received:", req.file);
+
     const { title, date, content, author } = req.body;
 
-    // Validate required fields
-    if (!title?.trim() || !date?.trim() || !content?.trim() || !author?.trim()) {
-      throw new ApiError(400, "All fields are required");
+    // Validate required fields with more detailed error messages
+    const missingFields = [];
+    if (!title?.trim()) missingFields.push("title");
+    if (!date?.trim()) missingFields.push("date");
+    if (!content?.trim()) missingFields.push("content");
+    if (!author?.trim()) missingFields.push("author");
+
+    if (missingFields.length > 0) {
+      throw new ApiError(400, `Missing required fields: ${missingFields.join(', ')}`);
     }
 
     // Validate and format the date
-    const parsedDate = validateAndFormatDate(date);
+    let parsedDate;
+    try {
+      parsedDate = validateAndFormatDate(date);
+    } catch (error) {
+      throw new ApiError(400, "Invalid date format. Please use YYYY-MM-DD or DD/MM/YYYY format");
+    }
 
     const imageLocalPath = req.file?.path;
     console.log("Image local path:", imageLocalPath);
 
     if (!imageLocalPath) {
-      throw new ApiError(400, "Image file is required");
+      throw new ApiError(400, "Image file is required. Please upload an image.");
     }
 
-    // Upload image to Cloudinary
+    // Upload image to Cloudinary with better error handling
     console.log("Uploading to Cloudinary...");
-    const cloudinaryResponse = await uploadOnCloudinary(imageLocalPath);
-    console.log("Cloudinary response:", cloudinaryResponse);
+    let cloudinaryResponse;
+    try {
+      cloudinaryResponse = await uploadOnCloudinary(imageLocalPath);
+      console.log("Cloudinary response:", cloudinaryResponse);
 
-    if (!cloudinaryResponse?.url) {
-      throw new ApiError(500, "Error uploading image to Cloudinary");
+      if (!cloudinaryResponse) {
+        throw new Error("Failed to upload image to Cloudinary");
+      }
+    } catch (error) {
+      console.error("Cloudinary upload error:", error);
+      throw new ApiError(500, `Error uploading image to Cloudinary: ${error.message || "Unknown error"}`);
     }
 
     console.log("Cloudinary upload successful:", cloudinaryResponse.url);
 
-    // Create blog post
+    // Create blog post with secure URL
     const blogData = {
       title,
       date: parsedDate,
       content,
       author,
-      image: cloudinaryResponse.secure_url
+      image: cloudinaryResponse.secure_url || cloudinaryResponse.url
     };
+
+    console.log("Creating blog with data:", blogData);
 
     const blog = await Blog.create(blogData);
 
@@ -75,11 +97,12 @@ const createBlog = asyncHandler(async (req, res) => {
       .status(201)
       .json(new ApiResponse(
         201,
-        "Blog created successfully",
-        blog
+        blog,
+        "Blog created successfully"
       ));
 
   } catch (error) {
+    console.error("Blog creation error:", error);
     if (error instanceof ApiError) {
       throw error;
     }
