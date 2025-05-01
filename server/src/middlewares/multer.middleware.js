@@ -2,9 +2,15 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 
+const isServerless = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME;
+
+const getTempPath = () => {
+  return isServerless ? '/tmp' : path.resolve("public/temp");
+};
+
 // Create temp directory if it doesn't exist
 const createTempDir = () => {
-  const tempPath = path.resolve("public/temp");
+  const tempPath = getTempPath();
   if (!fs.existsSync(tempPath)) {
     fs.mkdirSync(tempPath, { recursive: true });
   }
@@ -15,7 +21,7 @@ createTempDir();
 // Use disk storage for handling multiple files
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, path.resolve("public/temp"));
+    cb(null, getTempPath());
   },
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
