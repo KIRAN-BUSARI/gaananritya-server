@@ -91,7 +91,7 @@ const getBlogs = asyncHandler(async (_, res) => {
   try {
     const blogs = await Blog.find();
     return res.json(
-      new ApiResponse(200, "Blogs fetched successfully", blogs)
+      new ApiResponse(200, blogs, "Blogs fetched successfully",)
     )
   } catch (error) {
     throw new ApiError(500, "Something went wrong", error)
