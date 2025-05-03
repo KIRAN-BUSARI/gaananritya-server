@@ -21,6 +21,10 @@ const blogSchema = new Schema({
     type: String,
     required: true,
   },
+  tags: {
+    type: [String],
+    default: ['Classical Dance', 'Bharatanatyam']
+  },
 }, {
   timestamps: true,
 });

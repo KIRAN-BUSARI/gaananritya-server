@@ -30,6 +30,7 @@ const createBlog = asyncHandler(async (req, res) => {
     console.log("Files received:", req.file);
 
     const { title, date, content, author } = req.body;
+    const tags = req.body.tags || req.body["tags[]"] || ['Classical Dance', 'Bharatanatyam'];
 
     // Validate required fields with more detailed error messages
     const missingFields = [];
@@ -80,7 +81,8 @@ const createBlog = asyncHandler(async (req, res) => {
       date: parsedDate,
       content,
       author,
-      image: cloudinaryResponse.secure_url || cloudinaryResponse.url
+      image: cloudinaryResponse.secure_url || cloudinaryResponse.url,
+      tags: Array.isArray(tags) ? tags : [tags]
     };
 
     console.log("Creating blog with data:", blogData);
@@ -112,18 +114,99 @@ const createBlog = asyncHandler(async (req, res) => {
 
 const getBlogs = asyncHandler(async (_, res) => {
   try {
-    const blogs = await Blog.find();
+    const blogs = await Blog.find().sort({ createdAt: -1 });
     return res.json(
-      new ApiResponse(200, blogs, "Blogs fetched successfully",)
+      new ApiResponse(200, blogs, "Blogs fetched successfully")
     )
   } catch (error) {
     throw new ApiError(500, "Something went wrong", error)
   }
 });
 
+// New endpoint to get all blogs with filtering, pagination and search
+const getAllBlogs = asyncHandler(async (req, res) => {
+  try {
+    const { page = 1, limit = 10, tag, search } = req.query;
+    const pageNumber = parseInt(page);
+    const limitNumber = parseInt(limit);
+    const skipDocuments = (pageNumber - 1) * limitNumber;
+
+    // Build the query based on filters
+    const query = {};
+
+    // Add tag filter if provided
+    if (tag) {
+      query.tags = { $in: [tag] };
+    }
+
+    // Add search filter if provided
+    if (search) {
+      query.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { content: { $regex: search, $options: 'i' } },
+        { author: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    // Count total documents matching the query
+    const totalDocs = await Blog.countDocuments(query);
+
+    // Fetch the blogs with pagination and sorting
+    const blogs = await Blog.find(query)
+      .sort({ date: -1 })
+      .skip(skipDocuments)
+      .limit(limitNumber);
+
+    // Return response with metadata in the correct format
+    return res.json({
+      statusCode: 200,
+      data: blogs,
+      message: "Blogs fetched successfully",
+      success: true,
+      total: totalDocs,
+      page: pageNumber,
+      limit: limitNumber,
+      totalPages: Math.ceil(totalDocs / limitNumber)
+    });
+  } catch (error) {
+    console.error("Error fetching blogs:", error);
+    throw new ApiError(500, "Error while fetching blogs");
+  }
+});
+
+// Get a single blog by ID
+const getBlogById = asyncHandler(async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log("Fetching blog by ID:", id);
+
+    const blog = await Blog.findById(id);
+    console.log(blog);
+
+    if (!blog) {
+      throw new ApiError(404, "Blog not found");
+    }
+
+    // Return response in the expected format
+    return res.json({
+      statusCode: 200,
+      data: blog,
+      message: "Blog fetched successfully",
+      success: true
+    });
+  } catch (error) {
+    console.error("Error fetching blog by ID:", error);
+    if (error.name === 'CastError') {
+      throw new ApiError(400, "Invalid blog ID format");
+    }
+    throw new ApiError(500, "Error while fetching blog");
+  }
+});
+
 const updateBlog = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { title, date, content, author } = req.body;
+  const tags = req.body.tags || req.body["tags[]"];
   const imageLocalPath = req.file?.path;
 
   try {
@@ -145,6 +228,9 @@ const updateBlog = asyncHandler(async (req, res) => {
     }
     if (author !== undefined && author !== null) {
       updateFields.author = author.trim();
+    }
+    if (tags !== undefined && tags !== null) {
+      updateFields.tags = Array.isArray(tags) ? tags : [tags];
     }
 
     // Parse and validate date only if provided
@@ -170,7 +256,7 @@ const updateBlog = asyncHandler(async (req, res) => {
         if (!uploadedImage?.url) {
           throw new ApiError(500, "Error uploading image to Cloudinary");
         }
-        updateFields.image = uploadedImage.url;
+        updateFields.image = uploadedImage.secure_url || uploadedImage.url;
       } catch (error) {
         throw new ApiError(500, "Failed to upload image");
       }
@@ -188,7 +274,7 @@ const updateBlog = asyncHandler(async (req, res) => {
     }
 
     return res.status(200).json(
-      new ApiResponse(200, "Blog updated successfully", blog)
+      new ApiResponse(200, blog, "Blog updated successfully")
     );
 
   } catch (error) {
@@ -207,7 +293,7 @@ const deleteBlog = asyncHandler(async (req, res) => {
       throw new ApiError(404, "Blog not found")
     }
     res.status(200).json(
-      new ApiResponse(200, "Blog deleted successfully", blog)
+      new ApiResponse(200, blog, "Blog deleted successfully")
     );
   } catch (error) {
     if (error instanceof ApiError) {
@@ -217,4 +303,4 @@ const deleteBlog = asyncHandler(async (req, res) => {
   }
 });
 
-export { createBlog, getBlogs, updateBlog, deleteBlog };
+export { createBlog, getBlogs, updateBlog, deleteBlog, getAllBlogs, getBlogById };
