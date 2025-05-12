@@ -19,6 +19,8 @@ app.use(cors({
   origin: function (origin, callback) {
     // Parse multiple origins from environment variable
     const allowedOrigins = process.env.CORS_ORIGIN.split(',').map(o => o.trim());
+    console.log(allowedOrigins);
+    
     // For development, allow requests with no origin
     if (!origin || allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
