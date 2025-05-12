@@ -20,7 +20,7 @@ app.use(cors({
     // Parse multiple origins from environment variable
     const allowedOrigins = process.env.CORS_ORIGIN.split(',').map(o => o.trim());
     console.log(allowedOrigins);
-    
+
     // For development, allow requests with no origin
     if (!origin || allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
@@ -40,12 +40,10 @@ import userRoutes from './routes/user.routes.js';
 import blogRoutes from "./routes/blog.routes.js";
 import galleryRoutes from "./routes/gallery.routes.js";
 import videoRoutes from "./routes/video.routes.js";
-import contactRoutes from "./routes/contact.routes.js";
 
 app.use("/api/v1/user", userRoutes);
 app.use("/api/v1/blog", blogRoutes);
 app.use('/api/v1/gallery', galleryRoutes);
 app.use('/api/v1/videos', videoRoutes);
-app.use('/api/v1/contact', contactRoutes);
 
 export { app };
