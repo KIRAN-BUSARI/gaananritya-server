@@ -17,7 +17,8 @@ app.use(cookieParser())
 
 app.use(cors({
   origin: function (origin, callback) {
-    const allowedOrigins = [process.env.CORS_ORIGIN];
+    // Parse multiple origins from environment variable
+    const allowedOrigins = process.env.CORS_ORIGIN.split(',').map(o => o.trim());
     // For development, allow requests with no origin
     if (!origin || allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
@@ -37,10 +38,12 @@ import userRoutes from './routes/user.routes.js';
 import blogRoutes from "./routes/blog.routes.js";
 import galleryRoutes from "./routes/gallery.routes.js";
 import videoRoutes from "./routes/video.routes.js";
+import contactRoutes from "./routes/contact.routes.js";
 
 app.use("/api/v1/user", userRoutes);
 app.use("/api/v1/blog", blogRoutes);
 app.use('/api/v1/gallery', galleryRoutes);
 app.use('/api/v1/videos', videoRoutes);
+app.use('/api/v1/contact', contactRoutes);
 
 export { app };
