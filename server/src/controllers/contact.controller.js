@@ -28,7 +28,7 @@ export const sendContactEmail = async (req, res) => {
 
     const info = await transporter.sendMail({
       from: `${name} <${email}>`,
-      to: process.env.CONTACT_EMAIL_RECIPIENT || process.env.EMAIL_TO,
+      to: process.env.CONTACT_EMAIL_RECIPIENT,
       subject: subject,
       text: `
         Name: ${name}
