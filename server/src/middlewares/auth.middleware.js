@@ -7,18 +7,26 @@ export const verifyJWT = asyncHandler(async (req, _, next) => {
   try {
     const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "")
 
-    // console.log(token);
     if (!token) {
       throw new ApiError(401, "Unauthorized request")
     }
 
-    const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET)
+    // Decode token first to avoid unnecessary DB query if token is invalid
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+    } catch (error) {
+      throw new ApiError(401, "Invalid or expired access token");
+    }
 
-    const user = await User.findById(decodedToken?._id).select("-password -refreshToken")
-    console.log(user);
+    // Only query database if token verification is successful
+    // Use lean() for better performance and specific field projection
+    const user = await User.findById(decodedToken?._id)
+      .select("-password -refreshToken")
+      .lean();
 
     if (!user) {
-      throw new ApiError(401, "Invalid Access Token")
+      throw new ApiError(401, "Invalid Access Token: User not found")
     }
 
     req.user = user;
@@ -30,9 +38,17 @@ export const verifyJWT = asyncHandler(async (req, _, next) => {
 
 export const allowedRoles = (...roles) => {
   return (req, _, next) => {
-    if (!roles.includes(req.user.role)) {
-      throw new ApiError(403, "You are not allowed to perform this action")
+    if (!req.user) {
+      throw new ApiError(401, "Unauthorized request");
     }
-    next()
-  }
-}
+
+    const userRole = req.user.role;
+    const isAllowed = roles.includes(userRole);
+
+    if (!isAllowed) {
+      throw new ApiError(403, "You are not allowed to access this resource");
+    }
+
+    next();
+  };
+};

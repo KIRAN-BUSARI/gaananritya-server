@@ -3,23 +3,6 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js"
 import { ApiResponse } from "../utils/ApiResponse.js";
 
-const generateAccessAndRefereshTokens = async (userId) => {
-  try {
-    const user = await User.findById(userId)
-    const accessToken = user.generateAccessToken()
-    const refreshToken = user.generateRefreshToken()
-
-    user.refreshToken = refreshToken
-    await user.save({ validateBeforeSave: false })
-
-    return { accessToken, refreshToken }
-
-
-  } catch (error) {
-    throw new ApiError(500, "Something went wrong while generating referesh and access token")
-  }
-}
-
 const domain = process.env.NODE_ENV === "production"
   ? new URL(process.env.CORS_ORIGIN).hostname
   : 'localhost';
@@ -41,21 +24,26 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new ApiError(400, "All fields are required")
   }
 
-  const existingUser = await User.findOne({ email });
+  // Use lean() for faster query when we only need to check existence
+  const existingUser = await User.findOne({ email }).lean();
 
   if (existingUser) {
     throw new ApiError(400, "User with Email already exists");
   }
 
-  const user = await User.create({
+  // Create user and use select() directly to omit password and refreshToken
+  // This eliminates the need for a separate query
+  const createdUser = await User.create({
     username,
     email,
     password
+  }).then(user => {
+    // Convert document to plain object and remove sensitive fields
+    const userObj = user.toObject();
+    delete userObj.password;
+    delete userObj.refreshToken;
+    return userObj;
   });
-
-  const createdUser = await User.findById(user._id).select(
-    "-password -refreshToken"
-  )
 
   if (!createdUser) {
     throw new ApiError(500, "Something went wrong while registering the user")
@@ -79,6 +67,7 @@ const loginUser = asyncHandler(async (req, res) => {
     throw new ApiError(500, "Please provide a correct ADMIN credentials")
   };
 
+  // Use a single query to get user data with password
   const user = await User.findOne({ email }).select("+password");
 
   if (!user) {
@@ -91,15 +80,18 @@ const loginUser = asyncHandler(async (req, res) => {
     throw new ApiError(401, "Invalid Password");
   }
 
-  const { accessToken, refreshToken } = await generateAccessAndRefereshTokens(
-    user._id
-  );
+  // Generate tokens
+  const accessToken = user.generateAccessToken();
+  const refreshToken = user.generateRefreshToken();
 
-  const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
+  // Update user with refresh token
+  user.refreshToken = refreshToken;
+  await user.save({ validateBeforeSave: false });
 
-  if (!loggedInUser) {
-    throw new ApiError(500, "Error while getting user details");
-  }
+  // Remove sensitive data before sending response
+  const userObj = user.toObject();
+  delete userObj.password;
+  delete userObj.refreshToken;
 
   return res
     .status(200)
@@ -109,7 +101,7 @@ const loginUser = asyncHandler(async (req, res) => {
       new ApiResponse(
         200,
         {
-          user: loggedInUser, accessToken, refreshToken
+          user: userObj, accessToken, refreshToken
         },
         "User logged In Successfully"
       )

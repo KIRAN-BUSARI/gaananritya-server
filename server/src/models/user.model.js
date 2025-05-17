@@ -15,7 +15,8 @@ const userSchema = new Schema(
       required: true,
       unique: true,
       trim: true,
-      lowercase: true
+      lowercase: true,
+      index: true // Add index to email field for faster lookups
     },
     password: {
       type: String,
@@ -25,7 +26,8 @@ const userSchema = new Schema(
     role: {
       type: String,
       enum: ["ADMIN", "USER"],
-      default: "ADMIN"
+      default: "ADMIN",
+      index: true // Add index to role field for faster queries by role
     },
     refreshToken: {
       type: String
