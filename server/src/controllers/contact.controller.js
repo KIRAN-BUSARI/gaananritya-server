@@ -16,6 +16,7 @@ const createTransporter = () => {
 export const sendContactEmail = async (req, res) => {
   try {
     const { name, email, subject, message } = req.body;
+    console.log(name, email, subject, message);
 
     if (!name || !email || !message) {
       return res.status(400).json({
@@ -63,11 +64,6 @@ export const sendContactEmail = async (req, res) => {
   }
 };
 
-/**
- * Send newsletter subscription email
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- */
 export const subscribeNewsletter = async (req, res) => {
   try {
     const { email } = req.body;
@@ -81,7 +77,6 @@ export const subscribeNewsletter = async (req, res) => {
 
     const transporter = createTransporter();
 
-    // Send confirmation email
     const info = await transporter.sendMail({
       from: process.env.EMAIL_FROM || '"Gaana Nritya Academy" <no-reply@gaananritya.com>',
       to: email,
@@ -97,7 +92,7 @@ export const subscribeNewsletter = async (req, res) => {
         <div>
           <h2>Thank you for subscribing!</h2>
           <p>You will now receive updates about our events, classes, and other news from Gaana Nritya Academy.</p>
-          <p>If you did not request this subscription, please ignore this email.</p>
+          <p>If you did not request thids subscription, please ignore this email.</p>
         </div>
       `,
     });
@@ -117,9 +112,5 @@ export const subscribeNewsletter = async (req, res) => {
   }
 };
 
-/**
- * Legacy function for backward compatibility
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- */
+
 export const submitContactForm = sendContactEmail;

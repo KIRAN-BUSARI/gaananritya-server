@@ -8,9 +8,13 @@ const gallerySchema = new Schema({
   category: {
     type: String,
     required: true,
+    index: true // Add index for category searches
   },
 }, {
   timestamps: true
 });
+
+// Add compound index for timestamp-based filtering by category
+gallerySchema.index({ category: 1, createdAt: -1 });
 
 export const Gallery = mongoose.model("Gallery", gallerySchema);

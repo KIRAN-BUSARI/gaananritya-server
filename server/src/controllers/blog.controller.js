@@ -133,29 +133,32 @@ const getAllBlogs = asyncHandler(async (req, res) => {
 
     // Build the query based on filters
     const query = {};
+    let countQuery = {};
 
     // Add tag filter if provided
     if (tag) {
       query.tags = { $in: [tag] };
+      countQuery.tags = { $in: [tag] };
     }
 
-    // Add search filter if provided
+    // Use text search if search query is provided
     if (search) {
-      query.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { content: { $regex: search, $options: 'i' } },
-        { author: { $regex: search, $options: 'i' } }
-      ];
+      // Use the text index we created if it's a text search
+      query.$text = { $search: search };
+      countQuery.$text = { $search: search };
     }
 
-    // Count total documents matching the query
-    const totalDocs = await Blog.countDocuments(query);
+    // Use Promise.all to execute both queries in parallel
+    const [blogs, totalDocs] = await Promise.all([
+      Blog.find(query)
+        .select('-content') // Exclude large fields for listing
+        .sort({ date: -1 })
+        .skip(skipDocuments)
+        .limit(limitNumber)
+        .lean(), // Use lean() for better performance when you don't need Mongoose methods
 
-    // Fetch the blogs with pagination and sorting
-    const blogs = await Blog.find(query)
-      .sort({ date: -1 })
-      .skip(skipDocuments)
-      .limit(limitNumber);
+      Blog.countDocuments(countQuery)
+    ]);
 
     // Return response with metadata in the correct format
     return res.json({

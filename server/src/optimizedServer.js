@@ -1,18 +1,14 @@
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import { app } from './app.js';
+import { connectDB } from './db/index.js';
 import dotenv from 'dotenv';
-import { join } from 'path';
-import { app } from "./app.js";
-import connectDB from "./db/index.js";
 import cluster from 'cluster';
 import os from 'os';
 import compression from 'compression';
 import helmet from 'helmet';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-dotenv.config({ path: join(__dirname, '../.env') });
+dotenv.config({
+  path: "./.env"
+});
 
 app.use(compression({
   level: 6,
@@ -66,10 +62,10 @@ const numCPUs = os.cpus().length;
 const startServer = async () => {
   try {
     await connectDB();
-    const port = process.env.PORT || 8001;
+    const port = process.env.PORT || 5000;
 
     app.listen(port, () => {
-      console.log(`⚡️ Optimized server is running at http://localhost:${port}`);
+      console.log(`⚡️ Server is running at http://localhost:${port}`);
     });
 
   } catch (error) {
