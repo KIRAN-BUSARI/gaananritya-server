@@ -8,7 +8,6 @@ const getTempPath = () => {
   return isServerless ? '/tmp' : path.resolve("public/temp");
 };
 
-// Create temp directory if it doesn't exist
 const createTempDir = () => {
   const tempPath = getTempPath();
   if (!fs.existsSync(tempPath)) {
@@ -18,7 +17,6 @@ const createTempDir = () => {
 
 createTempDir();
 
-// Use disk storage for handling multiple files
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, getTempPath());
@@ -33,10 +31,9 @@ const storage = multer.diskStorage({
 export const upload = multer({
   storage,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
+    fileSize: 5 * 1024 * 1024,
   },
   fileFilter: function (req, file, cb) {
-    // Accept only image files
     const allowedFileTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 
     if (allowedFileTypes.includes(file.mimetype)) {

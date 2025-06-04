@@ -120,4 +120,4 @@ dist
 # End of https://mrkandreev.name/snippets/gitignore-generator/#Node
 .vercel
 
-.DS_Store
+*..DS_Store
